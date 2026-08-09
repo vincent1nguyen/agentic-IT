@@ -20,7 +20,9 @@ Restart the implementation from a clean slate and grow the project incrementally
 - [x] Decide on and implement the first small behavior: `GET /health`.
 - [x] Install/configure Python and declare the initial project dependencies.
 - [x] Verify the application imports and the health handler returns the expected data.
-- [ ] Verify `GET /health` over HTTP and add an automated test.
+- [x] Verify `GET /health` manually over HTTP with Postman.
+- [x] Add the initial `POST /questions` API contract.
+- [ ] Connect `POST /questions` to AI response generation.
 
 ## Files Expected to Change Today
 
@@ -44,11 +46,15 @@ current.md
 - Created a local `.venv` and installed FastAPI 0.141.1 and Uvicorn 0.52.1.
 - Added `pyproject.toml` for project metadata and dependency declarations.
 - Added `.gitignore` rules for the virtual environment and Python cache files.
+- Added validated `QuestionRequest` and structured `QuestionResponse` models.
+- Added `POST /questions` with a temporary response and empty sources list.
 
 ### Test Results
 
 - Verified the application imports and the health handler returns `{ "status": "ok" }` using the local virtual environment.
-- HTTP-level and automated tests have not been added yet.
+- Manually verified `GET /health` over HTTP with Postman.
+- Verified the question models and handler directly using the local virtual environment.
+- Automated tests are intentionally deferred while endpoints are checked manually with Postman.
 
 ### Decisions and Issues
 
@@ -57,8 +63,8 @@ current.md
 
 ## Next Session
 
-1. Run the application and verify `GET /health` over HTTP.
-2. Add the first automated test and its minimum test dependency.
-3. Keep the project flat until the code develops separate responsibilities.
+1. Verify `POST /questions` manually with Postman, including a valid and blank question.
+2. Introduce configuration for an OpenAI API key without committing secrets.
+3. Replace the temporary answer with a structured LLM-generated response while keeping the current API contract.
 
 Update this section at the end of today’s session with any unfinished work, blockers, and the exact next action.
