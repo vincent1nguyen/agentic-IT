@@ -5,5 +5,15 @@ description = "AI assistant for retrieving IT knowledge and generating grounded 
 requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.115.0,<1.0.0",
+    "openai>=1.0.0,<3.0.0",
     "uvicorn[standard]>=0.30.0,<1.0.0",
 ]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27.0,<1.0.0",
+    "pytest>=8.0.0,<10.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
