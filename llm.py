@@ -11,6 +11,7 @@ acting on it."""
 
 
 class LLMConfigurationError(RuntimeError):
+    # docstring
     """Raised when the LLM provider is not configured."""
 
 

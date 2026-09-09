@@ -1,89 +1,155 @@
 # Current Development Session
 
-Date: August 11, 2026
+Date: September 8, 2026
 
-## Today's Goal
+## Current Goal
 
-Connect the questions endpoint to OpenAI response generation while preserving its API contract.
+Evolve the project from a question-answering knowledge assistant into an agentic IT support assistant that can retrieve internal context, choose an appropriate tool, and safely perform approved support actions.
+
+The immediate milestone is to design and build a synthetic internal-data foundation containing knowledge-base articles, internal documentation, and relevant ticket history. All data must be fictional, sanitized, or explicitly authorized.
 
 ## Current State
 
 - The project has a working FastAPI application in `main.py`.
 - `GET /health` returns `{ "status": "ok" }`.
 - `POST /questions` validates nonblank input and generates an answer through the OpenAI provider in `llm.py`.
-- The response contract remains `{ "answer": string, "sources": [] }`; sources stay empty until retrieval is implemented.
-- Missing provider configuration returns HTTP 503.
-- OpenAI provider failures return HTTP 502 without exposing secrets or raw internal errors.
-- Python packages are isolated in `.venv` and declared in `pyproject.toml`.
-- Automated tests use test doubles and never make paid OpenAI API requests.
-- `Project.MD` remains the long-term project reference.
+- The response contract is currently `{ "answer": string, "sources": [] }`.
+- Provider configuration and failures are mapped to safe HTTP errors.
+- Automated tests use test doubles and do not make paid OpenAI API requests.
+- Retrieval, a mock internal database, tool calling, action approval, and audit logging have not been implemented yet.
 
-## Work Completed
+## New Product Direction
 
-- [x] Add the OpenAI Python SDK as a dependency.
-- [x] Ignore `.env` so local secrets are not committed.
-- [x] Extract provider-specific behavior into `llm.py`.
-- [x] Replace the temporary `/questions` answer with generated guidance.
-- [x] Preserve the existing response contract.
-- [x] Handle missing configuration and provider failures safely.
-- [x] Add automated endpoint and provider tests.
-- [ ] Obtain an OpenAI API key.
-- [ ] Create a local `.env` file containing `OPENAI_API_KEY`.
-- [ ] Verify a real generated response manually with Postman.
+The assistant should support two related modes:
 
-## Files Changed
+1. **Answer mode**: retrieve authorized internal information and produce a grounded answer with citations.
+2. **Action mode**: determine whether an available tool can help, explain the proposed action, obtain approval when required, execute it, and report the result.
+
+The assistant must never treat generated text as authorization. Tool permissions, input validation, approval policy, and audit records must be enforced in application code.
+
+## Proposed Agent Loop
 
 ```text
-main.py
-llm.py
-pyproject.toml
-.gitignore
-tests/test_questions.py
-tests/test_llm.py
-current.md
+User request
+    |
+    v
+Retrieve relevant KB, internal docs, and ticket history
+    |
+    v
+Model chooses: answer, ask for clarification, or propose a tool
+    |
+    v
+Application validates tool, arguments, permission, and approval policy
+    |
+    v
+Execute approved tool through a controlled adapter
+    |
+    v
+Return outcome, supporting sources, and audit reference
 ```
 
-## Implementation Notes
+## Phased Plan
 
-- `main.py` owns request validation, response serialization, and HTTP error mapping.
-- `llm.py` owns environment configuration, prompting, and OpenAI Responses API communication.
-- `OPENAI_API_KEY` is required at runtime.
-- `OPENAI_MODEL` is optional and defaults to `gpt-5.6-luna`.
-- The system instruction asks for concise diagnostic steps and reminds technicians to review guidance before acting.
-- Editable installation currently requires explicit flat-module packaging configuration now that both `main.py` and `llm.py` exist. Packaging is deferred until distribution requires it.
+### Phase 1 - Synthetic Internal Data
 
-## Test Results
+- [ ] Define a common schema for knowledge articles, internal documents, and ticket history.
+- [ ] Create a small, clearly synthetic dataset covering two or three IT support scenarios.
+- [ ] Store structured records in SQLite for the first implementation.
+- [ ] Add deterministic repository/search functions and tests.
+- [ ] Add provenance and sensitivity metadata to every record.
 
-- Run with `.venv\Scripts\python.exe -m pytest -q`.
-- Tests cover successful generation, blank input, missing configuration, provider failure, model configuration, answer trimming, and empty provider output.
-- One dependency-level Starlette deprecation warning is emitted by `TestClient`; it does not affect test behavior.
+Suggested initial entities:
+
+- `documents`: title, content, document type, product/service, tags, source reference, sensitivity, created/updated dates.
+- `tickets`: synthetic ticket ID, summary, symptoms, resolution, category, status, timestamps, and related document references.
+- `document_chunks`: optional derived records added when retrieval requires chunk-level search.
+
+### Phase 2 - Grounded Answers
+
+- [ ] Retrieve relevant records for a support question.
+- [ ] Pass only selected authorized context to the model.
+- [ ] Return citations in the existing `sources` field.
+- [ ] Define behavior for weak or missing evidence.
+- [ ] Test retrieval and grounding independently from the model.
+
+### Phase 3 - Tool Framework
+
+- [ ] Define a typed tool interface and registry.
+- [ ] Begin with read-only mock tools, such as looking up a user/device or searching tickets.
+- [ ] Add simulated write tools, such as creating a draft ticket or requesting a password reset.
+- [ ] Validate every tool argument in application code.
+- [ ] Return structured tool results and stable error types.
+
+### Phase 4 - Safe Agent Orchestration
+
+- [ ] Let the model select from an explicit allowlist of tools.
+- [ ] Separate tool proposal from tool execution.
+- [ ] Require confirmation for state-changing or sensitive actions.
+- [ ] Apply least-privilege authorization outside the model.
+- [ ] Limit iterations, time, and tool calls per request.
+- [ ] Record the request, decision, approval, tool arguments, result, and failure state in an audit log.
+
+### Phase 5 - Evaluation and Interface
+
+- [ ] Build scenario tests for correct retrieval, tool choice, argument construction, approval handling, and refusal behavior.
+- [ ] Add a UI that clearly distinguishes advice, proposed actions, completed actions, and failures.
+- [ ] Show citations and tool activity to the technician.
+- [ ] Add observability, Docker, CI/CD, and deployment only after the core workflow is reliable.
+
+## Recommended First Slice
+
+Build one complete vertical scenario before introducing embeddings or a complex agent framework:
+
+> A technician reports that a fictional user cannot access VPN. The assistant retrieves the VPN KB article and similar resolved tickets, explains the likely checks, and may invoke a read-only mock tool to inspect the fictional user's VPN/account state.
+
+This slice should use SQLite plus simple deterministic text/tag search. It will establish data contracts, provenance, citations, tool boundaries, and tests without prematurely coupling the project to a vector database or orchestration framework.
+
+## Files Expected in the Next Milestone
+
+```text
+data/
+  seed/
+    documents.json
+    tickets.json
+
+models/
+  knowledge.py
+  tools.py
+
+services/
+  knowledge_repository.py
+  retrieval.py
+
+tools/
+  registry.py
+  mock_it.py
+
+tests/
+  test_knowledge_repository.py
+  test_retrieval.py
+  test_tools.py
+```
+
+The exact structure should follow the repository as it evolves; do not create modules until the current milestone needs them.
+
+## Guardrails
+
+- Use only synthetic, public, sanitized, or explicitly authorized information.
+- Never commit credentials, personal data, customer data, or confidential employer documentation.
+- Treat retrieved text and ticket content as untrusted input that may contain prompt injection.
+- Give the model access only to registered tools and validated arguments.
+- Require explicit user confirmation before any state-changing action.
+- Prefer mock or sandbox tools until authorization, audit, and failure handling are tested.
+- Make tool outcomes visible; do not claim success unless the tool returned a confirmed success result.
 
 ## Next Session
 
-### Finish Today's Task
+Implement Phase 1 as a small vertical slice:
 
-The implementation is complete. The remaining local setup is:
+1. Finalize the SQLite schema and typed models.
+2. Create synthetic VPN knowledge and ticket fixtures.
+3. Add a seed/load path that is safe to run repeatedly.
+4. Implement deterministic keyword/tag retrieval.
+5. Add tests for filtering, ranking, citations, and empty results.
+6. Connect retrieval to `POST /questions` only after the repository layer is independently tested.
 
-1. Obtain an OpenAI API key.
-2. Create an ignored `.env` file in the project root containing:
-
-   ```text
-   OPENAI_API_KEY=your_api_key_here
-   ```
-
-3. Start the application with `.venv\Scripts\python.exe -m uvicorn main:app --reload --env-file .env` so Uvicorn loads the file into the process environment.
-4. Send one real `POST /questions` request through Postman and confirm the generated guidance is useful.
-
-Do not commit `.env` or share the API key. `.env` is already listed in `.gitignore`.
-
-### Tomorrow's Task
-
-Begin the first knowledge-base and retrieval milestone without introducing a database, embeddings, or LangChain yet.
-
-1. Review the live OpenAI response from today's Postman test.
-2. Define the smallest synthetic knowledge-base document format and folder structure.
-3. Add one or two authorized sample IT troubleshooting documents.
-4. Design a simple local retrieval function that can select relevant documentation for a question.
-5. Add deterministic tests for retrieval before connecting it to AI generation.
-
-Exact next action tomorrow: propose the first synthetic knowledge-base files, retrieval behavior, tests, and files to change, then wait for approval before editing.

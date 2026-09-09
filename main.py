@@ -5,11 +5,13 @@ from pydantic import BaseModel, StringConstraints
 
 from llm import LLMConfigurationError, LLMProviderError, generate_answer
 
-
+# Reusable validated string type:
+# removes leading/trailing whitespace and requires at least one character.
 QuestionText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
 class QuestionRequest(BaseModel):
+    # Field name: question; expected type: QuestionText
     question: QuestionText
 
 

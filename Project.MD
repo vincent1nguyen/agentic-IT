@@ -1,1182 +1,385 @@
-# AI IT Knowledge Assistant — Project Notes
+# Agentic IT Support Assistant - Project Plan
 
-## Project Purpose
+## Project Vision
 
-AI IT Knowledge Assistant is a full-stack AI application designed to help IT technicians quickly find relevant troubleshooting information from a knowledge base.
+Build a full-stack IT support assistant that can understand a technician's request, retrieve relevant internal context, choose from a controlled set of tools, and perform authorized actions safely.
 
-Instead of manually searching through documentation, technicians can describe an IT issue in natural language. The application retrieves relevant knowledge-base documentation and uses an LLM to generate a concise troubleshooting response with supporting sources.
+The project begins with synthetic internal data that resembles real support resources:
 
-The project is intended to demonstrate practical software engineering and AI application development using Python, FastAPI, React, TypeScript, PostgreSQL, REST APIs, RAG, automated testing, Docker, and AWS.
+- knowledge-base articles,
+- internal process documentation,
+- relevant historical tickets,
+- fictional users, devices, accounts, and services used by mock tools.
 
-The application should assist technicians rather than make decisions for them. Generated troubleshooting guidance should be reviewed by the technician before being acted upon.
+The result should demonstrate practical agentic AI engineering, not unrestricted automation. The application owns permissions, validation, approval, execution, and auditing; the model may recommend or select an action only within those boundaries.
 
----
+## Primary Goals
 
-# Core Workflow
+1. Provide grounded IT guidance with traceable citations.
+2. Allow the assistant to select appropriate tools from an explicit registry.
+3. Execute read-only and simulated state-changing IT actions through typed adapters.
+4. Require approval for consequential actions and enforce least privilege outside the model.
+5. Build a realistic but entirely synthetic internal knowledge and ticket dataset.
+6. Evaluate the assistant's retrieval, decisions, tool use, and final responses with deterministic tests.
+7. Grow into a portfolio-quality React, TypeScript, FastAPI, PostgreSQL, Docker, CI/CD, and AWS application incrementally.
 
-1. A technician enters an IT support question or describes an issue.
+## Non-Goals for the First Version
 
-2. The React frontend sends the question to the FastAPI backend through a REST API.
+- Connecting to a real employer's systems or copying confidential documentation.
+- Giving the model unrestricted shell, network, database, or administrative access.
+- Automatically performing destructive or high-impact actions.
+- Adding embeddings, LangChain, PostgreSQL, or cloud infrastructure before a simpler implementation proves the contracts and workflow.
+- Claiming autonomous remediation when actions are mocked or require technician approval.
 
-3. The backend processes the request and sends the query through the retrieval pipeline.
+## Target User Experience
 
-4. The retrieval system searches indexed knowledge-base documentation for information relevant to the technician's question.
+A technician describes an issue. The assistant retrieves related internal documentation and ticket resolutions, then does one of the following:
 
-5. Relevant document chunks are supplied to the LLM as context.
-
-6. The LLM generates a troubleshooting response grounded in the retrieved documentation.
-
-7. The backend returns a structured response containing:
-   - troubleshooting guidance,
-   - relevant supporting documentation,
-   - citations or source references.
-
-8. The React frontend displays the recommendation and its supporting sources to the technician.
-
-Conceptually:
-
-```text
-Technician
-    |
-    v
-React + TypeScript UI
-    |
-    | REST API
-    v
-FastAPI Backend
-    |
-    v
-RAG Pipeline
-    |
-    +--------------------+
-    |                    |
-    v                    v
-Vector Search      Knowledge Base
-    |              Documentation
-    +---------+----------+
-              |
-              v
-       Relevant Context
-              |
-              v
-          OpenAI LLM
-              |
-              v
- Troubleshooting Response
-        + Citations
-              |
-              v
-      React Frontend
-```
-
----
-
-# Primary Project Goals
-
-The finished application should demonstrate several areas of software engineering.
-
-## Full-Stack Development
-
-Build a complete application using:
-
-- React
-- TypeScript
-- Python
-- FastAPI
-- REST APIs
-- PostgreSQL
-
-The frontend and backend should remain separate applications communicating through clearly defined APIs.
-
-## AI / LLM Development
-
-Use an LLM to generate useful IT troubleshooting responses.
-
-The system should demonstrate:
-
-- OpenAI API integration
-- prompt engineering
-- structured LLM outputs
-- context-aware generation
-- response validation
-
-## Retrieval-Augmented Generation
-
-The LLM should not rely only on its existing knowledge.
-
-Instead, the application should retrieve relevant documentation and provide that information to the model before generating its response.
-
-The RAG system should eventually include:
-
-- document ingestion,
-- text chunking,
-- embeddings,
-- vector search,
-- metadata,
-- source retrieval,
-- LangChain orchestration,
-- cited responses.
-
-## Software Engineering
-
-The application should also demonstrate:
-
-- typed data models,
-- API design,
-- separation of concerns,
-- automated testing,
-- unit testing,
-- integration testing,
-- debugging,
-- Git version control,
-- CI/CD,
-- containerization,
-- cloud deployment.
-
----
-
-# Target User Experience
-
-The technician should eventually be able to open the application and see a simple interface such as:
-
-```text
---------------------------------------------------
-AI IT Knowledge Assistant
---------------------------------------------------
-
-Describe the issue:
-
-[ User cannot connect to protected Wi-Fi.        ]
-[ Authentication fails with an EAP-TLS error.   ]
-[                                                  ]
-
-                                      [ Ask AI ]
-
---------------------------------------------------
-Recommended Troubleshooting
---------------------------------------------------
-
-1. Verify that the device has a valid certificate.
-
-2. Confirm the certificate has not expired.
-
-3. Verify the device is using the correct
-   authentication configuration.
-
-4. If necessary, re-enroll the device certificate.
-
---------------------------------------------------
-Sources
---------------------------------------------------
-
-• Protected Wi-Fi Troubleshooting Guide
-• Certificate Enrollment Documentation
---------------------------------------------------
-```
-
-The primary goal of the interface is speed and clarity.
-
-Technicians should be able to describe an issue and quickly receive relevant documentation without manually searching through multiple knowledge-base pages.
-
----
-
-# Knowledge Base
-
-The portfolio version of this application should use public, synthetic, or otherwise authorized IT documentation.
-
-Do not commit confidential, private, restricted, credential-bearing, or personally identifiable organizational data to the repository.
-
-Example knowledge-base topics could include:
-
-```text
-knowledge_base/
-
-wifi/
-  protected-wifi.md
-  certificate-errors.md
-
-vpn/
-  vpn-troubleshooting.md
-  secure-client.md
-
-authentication/
-  password-reset.md
-  mfa-troubleshooting.md
-
-email/
-  mailbox-access.md
-  account-configuration.md
-
-software/
-  software-installation.md
-```
-
-These documents can simulate the type of internal documentation an IT support organization might maintain.
-
-The architecture should allow a different authorized knowledge base to be indexed later without requiring major application changes.
-
----
-
-# Tech Stack
-
-## Frontend
-
-- React
-- TypeScript
-- HTML
-- CSS
-
-Responsibilities:
-
-- Accept technician questions.
-- Send requests to the backend.
-- Display AI-generated troubleshooting recommendations.
-- Display supporting documentation and citations.
-- Handle loading and error states.
-
----
-
-## Backend
-
-- Python
-- FastAPI
-- REST APIs
-- Pydantic
-
-Responsibilities:
-
-- Receive technician questions.
-- Validate request data.
-- Coordinate retrieval and generation.
-- Communicate with the LLM provider.
-- Return structured API responses.
-- Handle application errors.
-
----
-
-## AI
-
-- OpenAI API
-- LangChain
-- Prompt engineering
-- Retrieval-Augmented Generation
-- Embeddings
-- Vector search
-
-Responsibilities:
-
-- Interpret technician questions.
-- Retrieve relevant documentation.
-- Generate troubleshooting recommendations using retrieved context.
-- Produce structured responses.
-- Reference supporting sources.
-
----
-
-## Database
-
-- PostgreSQL
-
-PostgreSQL can initially store:
-
-- document metadata,
-- indexed knowledge-base information,
-- application data.
-
-A vector search solution can be introduced during the RAG phase.
-
-One possible implementation is PostgreSQL with pgvector, but the exact vector storage implementation should be selected when the retrieval phase is built rather than prematurely coupling the project to one implementation.
-
----
-
-## Testing
-
-### Backend
-
-- Pytest
-- FastAPI TestClient / HTTPX
-- Unit tests
-- Integration tests
-
-### Frontend
-
-- Component or unit tests where useful
-- Playwright for important user workflows
-
-Important behaviors to test include:
-
-- API validation,
-- document retrieval,
-- structured LLM responses,
-- missing documentation,
-- backend errors,
-- frontend request handling,
-- citation rendering.
-
----
-
-## Infrastructure
-
-- Docker
-- Linux
-- AWS
-- GitHub Actions
-- Git
-
-Long-term infrastructure goals:
-
-```text
-GitHub
-   |
-   v
-GitHub Actions
-   |
-   +--> Tests
-   |
-   +--> Build
-   |
-   v
-Docker
-   |
-   v
-AWS
-```
-
-The exact AWS architecture should be chosen when deployment work begins rather than adding unnecessary infrastructure during early development.
-
----
-
-# Project Architecture
-
-The backend should follow a simple layered architecture.
-
-```text
-server/
-
-  app/
-
-    main.py
-
-    api/
-      routes.py
-
-    core/
-      config.py
-
-    models/
-      ticket.py
-
-    services/
-      assistant.py
-      retrieval.py
-
-    llm/
-      openai.py
-
-    rag/
-      ingestion.py
-      embeddings.py
-      retriever.py
-
-  tests/
-```
-
-The structure may evolve as features are implemented.
-
-Do not create files simply because they appear in this proposed architecture. Add files when the functionality actually requires them.
-
----
-
-# Architecture Responsibilities
-
-## `main.py`
-
-Creates and configures the FastAPI application.
-
-Responsibilities:
-
-- create FastAPI app,
-- register routers,
-- configure application-level behavior.
-
----
-
-## `api/`
-
-Contains HTTP endpoints.
-
-Example future endpoints:
-
-```text
-GET /health
-
-POST /questions
-
-POST /documents
-```
-
-Routes should primarily handle HTTP concerns.
-
-Business logic should live in services rather than directly inside route handlers.
-
----
-
-## `models/`
-
-Contains typed request and response models.
-
-Possible models include:
-
-```text
-QuestionRequest
-
-QuestionResponse
-
-SourceReference
-
-RetrievedDocument
-```
-
-Pydantic should be used to validate API data and clearly define the contract between the frontend and backend.
-
----
-
-## `services/`
-
-Contains application business logic.
-
-For example:
-
-```text
-assistant.py
-```
-
-could coordinate:
-
-```text
-question
-   ↓
-retrieval
-   ↓
-prompt construction
-   ↓
-LLM
-   ↓
-structured response
-```
-
-Services should not contain HTTP-specific behavior.
-
----
-
-## `llm/`
-
-Contains code specific to external LLM providers.
-
-For example:
-
-```text
-llm/openai.py
-```
-
-should handle communication with the OpenAI API.
-
-Keeping provider-specific code isolated prevents the rest of the application from depending directly on one external API implementation.
-
----
-
-## `rag/`
-
-Contains retrieval-specific functionality.
-
-Eventually this may include:
-
-```text
-document ingestion
-text chunking
-embeddings
-vector storage
-similarity search
-metadata filtering
-source retrieval
-```
-
-These components should be introduced incrementally when the RAG phase begins.
-
----
-
-## `core/`
-
-Contains application configuration and shared infrastructure concerns.
-
-For example:
-
-```text
-core/config.py
-```
-
-can manage environment variables such as:
-
-```text
-OPENAI_API_KEY
-
-DATABASE_URL
-```
-
-Secrets must never be committed to Git.
-
----
-
-# Development Roadmap
-
-## Phase 1 — FastAPI Foundation
-
-Goal:
-
-Create a clean, tested backend foundation.
-
-Features:
-
-- FastAPI application
-- API router
-- `GET /health`
-- Pydantic models
-- Pytest setup
-- environment configuration
+- answers with cited troubleshooting steps,
+- asks for missing information,
+- proposes an available tool and explains why it is useful,
+- runs a safe read-only tool,
+- requests confirmation before a state-changing tool,
+- reports the verified result or a clear failure.
 
 Example:
 
 ```text
-GET /health
+Technician: Taylor cannot connect to the VPN after changing phones.
 
-Response:
+Assistant:
+- Found the VPN enrollment guide and two similar resolved tickets.
+- The account may still be bound to the previous MFA device.
+- Proposed read-only action: inspect Taylor's fictional MFA/VPN status.
 
-{
-  "status": "ok"
-}
+[Run check]
+
+Tool result:
+- VPN account: enabled
+- MFA enrollment: old device only
+
+Assistant:
+- Recommended next step: start the mock MFA re-enrollment workflow.
+- This changes account state and requires technician confirmation.
+
+[Approve] [Cancel]
 ```
 
-Purpose:
-
-Establish the backend architecture and confirm the application can receive and return HTTP requests.
-
----
-
-# Phase 2 — Basic AI Assistant
-
-Goal:
-
-Allow a technician to submit an IT question and receive an AI-generated response.
-
-Initial flow:
+## Core Architecture
 
 ```text
-Question
-   |
-   v
-POST /questions
-   |
-   v
-FastAPI
-   |
-   v
-OpenAI API
-   |
-   v
-Structured Response
+React / TypeScript UI
+          |
+          v
+FastAPI API and authentication context
+          |
+          v
+Assistant orchestration service
+    |           |             |
+    v           v             v
+Retrieval   Policy/approval   Tool registry
+    |                         |
+    v                         v
+Synthetic knowledge DB    Controlled adapters
+          \                 /
+           v               v
+             OpenAI model
+          (reasoning/selection)
+                  |
+                  v
+       Structured response + audit event
 ```
 
-Example request:
+The model does not directly access the database or external systems. Application services expose narrow retrieval and tool interfaces, validate all inputs, and decide whether execution is permitted.
+
+## Synthetic Internal Data
+
+### Data Policy
+
+All repository data must be public, synthetic, sanitized, or explicitly authorized. Do not copy workplace KB articles, ticket text, names, email addresses, hostnames, credentials, tokens, or customer information into the project.
+
+Synthetic records should be labeled as synthetic and use fictional identifiers. Each record should include provenance and sensitivity metadata so filtering can be tested from the start.
+
+### Initial Store
+
+Use SQLite for the first local implementation because it is simple, deterministic, and sufficient for learning the data and retrieval contracts. Introduce PostgreSQL and pgvector later when scale or semantic retrieval creates a concrete need.
+
+Suggested tables:
+
+```text
+documents
+- id
+- title
+- document_type (kb_article, procedure, policy, reference)
+- content
+- service
+- tags
+- sensitivity
+- source_reference
+- is_synthetic
+- created_at
+- updated_at
+
+tickets
+- id
+- external_reference
+- summary
+- symptoms
+- resolution
+- category
+- service
+- status
+- tags
+- related_document_ids
+- is_synthetic
+- opened_at
+- resolved_at
+
+audit_events
+- id
+- request_id
+- actor
+- event_type
+- tool_name
+- redacted_arguments
+- approval_state
+- outcome
+- created_at
+```
+
+Document chunks and embeddings should be derived data, added only when semantic retrieval is introduced.
+
+### Starter Dataset
+
+Create 10-20 high-quality records across a few coherent scenarios rather than many shallow documents:
+
+- VPN access and MFA enrollment,
+- protected Wi-Fi and certificate errors,
+- password reset and account lockout,
+- software installation and device compliance.
+
+Include successful tickets, irrelevant tickets, ambiguous cases, outdated documents, and missing-answer cases so retrieval behavior can be evaluated realistically.
+
+## Retrieval Strategy
+
+Start with deterministic keyword, tag, service, document-type, and recency scoring. Return structured results containing a stable ID, title, excerpt, score, and source reference.
+
+Then evolve in measured steps:
+
+1. SQLite full-text search if basic matching becomes limiting.
+2. Chunking and embeddings for semantic similarity.
+3. Hybrid retrieval combining lexical and vector scores.
+4. Metadata and authorization filtering before results enter the prompt.
+5. Reranking only if evaluations show a benefit.
+
+The assistant should state when evidence is weak or absent. It must not invent internal procedures or citations.
+
+## Tool System
+
+### Tool Contract
+
+Every tool should define:
+
+- a unique name and human-readable description,
+- a typed argument schema,
+- a typed result schema,
+- read-only or state-changing classification,
+- required permission,
+- approval policy,
+- timeout and failure behavior,
+- fields that must be redacted from logs.
+
+Tool calls pass through a registry and executor. Unknown tools and invalid arguments are rejected before any adapter runs.
+
+### Initial Mock Tools
+
+Begin with read-only tools:
+
+- `lookup_user` - return a fictional user's support profile.
+- `lookup_device` - return mock enrollment and compliance state.
+- `check_vpn_status` - return mock VPN and MFA status.
+- `search_ticket_history` - query synthetic resolved tickets.
+
+Then add simulated state-changing tools:
+
+- `create_ticket_draft`,
+- `request_password_reset`,
+- `start_mfa_reenrollment`.
+
+State-changing tools should initially update only local mock state and must require explicit approval. Idempotency keys should prevent accidental duplicate actions.
+
+## Agent Orchestration
+
+Use a bounded state machine rather than an open-ended autonomous loop:
+
+```text
+RECEIVE
+  -> RETRIEVE_CONTEXT
+  -> DECIDE
+       -> ANSWER
+       -> CLARIFY
+       -> PROPOSE_TOOL
+  -> VALIDATE_POLICY
+       -> AWAIT_APPROVAL (when required)
+       -> EXECUTE_TOOL
+  -> OBSERVE_RESULT
+  -> RESPOND
+```
+
+Set limits for model turns, tool calls, execution time, and result size. Preserve request and tool-call identifiers across the workflow. A model-generated tool request is a proposal; only the policy/execution layer can authorize it.
+
+## Safety and Trust Boundaries
+
+- Treat user input, retrieved documents, and ticket history as untrusted content.
+- Keep system instructions and tool policy separate from retrieved text.
+- Filter data by authorization before model exposure.
+- Use allowlisted tools with least-privilege credentials.
+- Require confirmation for state-changing, sensitive, costly, or externally visible actions.
+- Never expose secrets or raw provider errors.
+- Redact sensitive arguments and results from logs.
+- Record approvals and tool outcomes in an append-only audit trail.
+- Report only verified tool outcomes; distinguish proposals, attempts, successes, and failures.
+- Provide a kill switch or configuration setting that disables all action tools.
+
+## API Direction
+
+Preserve `POST /questions` during the transition, then introduce a conversation/action contract that can represent multiple states.
+
+Possible response shape:
 
 ```json
 {
-  "question": "A user cannot connect to Wi-Fi. What should I check?"
+  "request_id": "req_123",
+  "status": "answer|clarification_required|approval_required|completed|failed",
+  "message": "Human-readable response",
+  "sources": [],
+  "proposed_action": null,
+  "tool_result": null
 }
 ```
 
-Possible response:
-
-```json
-{
-  "answer": "Verify the network configuration and authentication settings.",
-  "sources": []
-}
-```
-
-At this phase, retrieval does not need to exist yet.
-
-Purpose:
-
-- Build OpenAI API integration.
-- Practice prompt engineering.
-- Establish structured AI responses.
-- Separate LLM communication from application business logic.
-
----
-
-# Phase 3 — Knowledge Base and RAG
-
-Goal:
-
-Ground AI responses in actual documentation.
-
-This is a major milestone for the project.
-
-Pipeline:
-
-```text
-Knowledge Base Documents
-          |
-          v
-       Chunking
-          |
-          v
-      Embeddings
-          |
-          v
-     Vector Storage
-
-
-Technician Question
-          |
-          v
-      Embedding
-          |
-          v
-    Similarity Search
-          |
-          v
- Relevant Document Chunks
-          |
-          v
-      Prompt Context
-          |
-          v
-         LLM
-          |
-          v
- Answer + Supporting Sources
-```
+Approval should be a separate API operation tied to a stored proposal and request ID. The client must not be able to alter approved tool arguments by resubmitting a modified payload.
 
-Implementation should eventually include:
+## Development Roadmap
 
-- document ingestion,
-- document chunking,
-- embeddings,
-- vector storage,
-- semantic search,
-- retrieval,
-- LangChain,
-- citations.
+### Phase 1 - Data Foundation
 
-The AI should be instructed to answer based on retrieved documentation and avoid inventing unsupported troubleshooting instructions.
+- Define Pydantic/domain models and SQLite schema.
+- Create synthetic seed fixtures.
+- Implement idempotent database initialization.
+- Build repository methods and deterministic retrieval.
+- Test ranking, filtering, provenance, and empty results.
 
----
+Exit criteria: a query can return useful, cited documents and ticket resolutions without calling an LLM.
 
-# Phase 4 — React Technician Interface
+### Phase 2 - Grounded Knowledge Assistant
 
-Goal:
-
-Build a usable frontend for technicians.
-
-Technology:
-
-- React
-- TypeScript
-
-Features:
-
-- question input,
-- submit button,
-- loading state,
-- error handling,
-- troubleshooting response,
-- supporting sources,
-- citation display.
-
-Flow:
-
-```text
-React
-  |
-  | POST /questions
-  v
-FastAPI
-  |
-  v
-RAG + LLM
-  |
-  v
-JSON Response
-  |
-  v
-React UI
-```
-
-Purpose:
-
-Turn the backend system into a complete full-stack application.
-
----
-
-# Phase 5 — Testing and Reliability
-
-Goal:
-
-Make the system reliable and demonstrate production-oriented engineering practices.
-
-Add:
-
-- backend unit tests,
-- API integration tests,
-- retrieval tests,
-- LLM response validation,
-- frontend tests,
-- Playwright workflow tests,
-- error handling,
-- logging.
-
-Important scenarios:
-
-- empty question,
-- malformed request,
-- LLM unavailable,
-- database unavailable,
-- no relevant documentation found,
-- multiple relevant documents,
-- invalid model response.
+- Connect retrieval to the existing question endpoint.
+- Construct prompts from authorized results.
+- Return source citations.
+- Handle insufficient evidence explicitly.
+- Add grounding and prompt-injection test cases.
 
-External APIs should be mocked where appropriate so tests remain deterministic and do not unnecessarily call paid services.
+Exit criteria: tested questions produce useful responses supported by synthetic sources.
 
----
+### Phase 3 - Read-Only Tool Calling
 
-# Phase 6 — Docker, CI/CD, and AWS
+- Build the typed tool registry and executor.
+- Implement fictional directory, device, and VPN tools.
+- Allow the model to choose a tool through structured output/tool calling.
+- Validate arguments and record audit events.
+- Add tool-selection and failure-path evaluations.
 
-Goal:
+Exit criteria: the assistant reliably selects and executes the correct read-only mock tool for defined scenarios.
 
-Deploy the application and automate testing/deployment workflows.
+### Phase 4 - Approval and Mock Actions
 
-Add:
+- Add persisted action proposals and approval states.
+- Add local simulated write tools.
+- Enforce authorization, explicit confirmation, idempotency, and timeouts.
+- Display proposed and completed actions distinctly.
+- Test cancellation, replay, expired approval, partial failure, and denial.
 
-- Docker configuration,
-- Linux deployment environment,
-- GitHub Actions,
-- automated tests on pushes and pull requests,
-- AWS deployment.
+Exit criteria: no state-changing mock tool can execute without a valid stored approval.
 
-Possible pipeline:
+### Phase 5 - Frontend
 
-```text
-Developer Push
-      |
-      v
-    GitHub
-      |
-      v
-GitHub Actions
-      |
-      +--> Run Tests
-      |
-      +--> Validate Build
-      |
-      v
- Docker Image
-      |
-      v
-     AWS
-```
+- Build a React and TypeScript technician interface.
+- Show answers, sources, clarification requests, action proposals, approvals, results, and errors.
+- Make action boundaries obvious to the user.
+- Add component and Playwright workflow tests.
 
-The exact AWS service should be selected based on the application's requirements when deployment begins.
+### Phase 6 - Production-Oriented Storage and Retrieval
 
-Do not add complex cloud infrastructure simply to increase the number of technologies used.
+- Migrate to PostgreSQL when justified.
+- Add pgvector or another vector store if semantic retrieval improves evaluations.
+- Add hybrid search, background ingestion, document versioning, and retention rules.
+- Keep retrieval and tool interfaces stable during infrastructure changes.
 
----
+### Phase 7 - Reliability and Deployment
 
-# Phase 7 — Optional ServiceNow Integration
+- Add structured logging, tracing, metrics, and evaluation reporting.
+- Containerize the application.
+- Run tests and security checks in GitHub Actions.
+- Deploy to an appropriate AWS environment.
+- Add secret management, backups, rate limits, and operational runbooks.
 
-The original AI Ticket Assistant concept can remain as a future extension of the project.
+### Phase 8 - Optional Real Integrations
 
-This phase is optional and should only begin after the core knowledge assistant works reliably.
+Only after mock workflows are safe and reliable, consider sandbox integrations such as ServiceNow, an identity provider, or device management system. Use scoped service accounts, vendor sandboxes, explicit approvals, and read-only access first.
 
-Possible workflow:
+## Testing and Evaluation
 
-```text
-ServiceNow
-    |
-    v
-Chrome Extension
-    |
-    v
-FastAPI Backend
-    |
-    v
-RAG + LLM
-    |
-    +--> Troubleshooting Assistance
-    |
-    +--> Ticket Summary
-    |
-    +--> Suggested Ticket Fields
-```
+Automated tests must not make paid model calls unless explicitly separated as opt-in evaluations.
 
-Possible features:
+Test layers:
 
-- read technician troubleshooting notes,
-- summarize completed troubleshooting,
-- recommend relevant documentation,
-- generate ticket descriptions,
-- suggest ticket fields,
-- assist with template selection,
-- populate ServiceNow fields after technician approval.
+- repository and schema tests,
+- deterministic retrieval tests,
+- API contract tests,
+- tool validation and authorization tests,
+- orchestration state-transition tests,
+- prompt-injection and data-boundary tests,
+- mocked model/tool integration tests,
+- curated scenario evaluations,
+- frontend end-to-end tests.
 
-The extension should assist with ticket creation rather than automatically submitting tickets.
+Track scenario-level measures such as retrieval relevance, citation accuracy, correct tool selection, valid arguments, unnecessary tool-call rate, approval compliance, task success, and safe refusal behavior.
 
----
+## Technology Strategy
 
-# Resume Target
+- **Now:** Python, FastAPI, Pydantic, OpenAI API, SQLite, Pytest.
+- **After the workflow is proven:** React, TypeScript, PostgreSQL, embeddings/vector search.
+- **After reliability is proven:** Docker, GitHub Actions, AWS, and optional sandbox integrations.
 
-The finished project should provide legitimate technical evidence for resume bullets similar to the following.
+Frameworks such as LangChain may be introduced if they reduce demonstrated orchestration or retrieval complexity. The core application contracts should not depend on a framework unnecessarily.
 
-### AI IT Knowledge Assistant
+## Current Repository State
 
-- Developed an AI assistant using Python, PostgreSQL, FastAPI, OpenAI API, and REST APIs to answer IT support questions, reducing manual knowledge-base search for technicians.
+- `main.py` contains the FastAPI app and `/health` and `/questions` endpoints.
+- `llm.py` isolates OpenAI configuration and response generation.
+- `tests/` contains endpoint and provider tests using test doubles.
+- `pyproject.toml` declares Python dependencies.
+- The current question response is compatible with future source retrieval but does not yet retrieve data or call tools.
 
-- Engineered a LangChain RAG pipeline using embeddings and semantic retrieval to identify relevant knowledge-base documentation and generate grounded troubleshooting responses with supporting citations.
+## Immediate Next Milestone
 
-- Constructed a React and TypeScript frontend for technicians to submit support questions and receive AI-generated troubleshooting recommendations with supporting documentation.
+Implement a synthetic VPN support vertical slice:
 
-- Built a CI/CD pipeline using Docker, Linux, Git, GitHub Actions, and AWS to automate testing and deployment, improving release consistency and backend reliability.
+1. Define models and an SQLite schema for documents and tickets.
+2. Seed a VPN KB article, an MFA procedure, several related resolved tickets, and irrelevant controls.
+3. Implement deterministic retrieval with citations.
+4. Test relevance, filtering, ordering, and empty results.
+5. Add a read-only mock VPN-status tool only after retrieval is independently working.
 
-These bullets describe the target finished application.
+## Development Principles
 
-Do not claim a feature is complete until the corresponding functionality has actually been implemented and tested.
-
----
-
-# Current Repository State
-
-The repository originally began as the AI Ticket Assistant.
-
-Current structure:
-
-```text
-AI-Ticket-Assistant/
-  README.md
-  .gitignore
-  .github/
-    workflows/
-      server-ci.yml
-
-  server/
-    pyproject.toml
-
-    app/
-      main.py
-
-      api/
-        routes.py
-
-      core/
-        config.py
-
-      llm/
-        openai.py
-
-      models/
-        ticket.py
-
-      services/
-        summarizer.py
-
-    tests/
-      test_health.py
-      test_ticket.py
-```
-
-The repository is still early enough that the project can transition to the AI IT Knowledge Assistant without significant rework.
-
-Existing backend concepts such as:
-
-- FastAPI,
-- routing,
-- configuration,
-- LLM isolation,
-- Pydantic models,
-- testing,
-
-remain relevant.
-
-Some ticket-specific naming may eventually need to change as the implementation evolves.
-
-Do not perform a large rename or refactor unless the existing names begin interfering with development.
-
----
-
-# Current Implementation
-
-## `server/pyproject.toml`
-
-Defines the Python backend project.
-
-Responsibilities:
-
-- backend package metadata,
-- Python version,
-- FastAPI dependency,
-- Uvicorn dependency,
-- Pytest development dependency,
-- HTTPX development dependency,
-- Pytest configuration.
-
-Beginner note:
-
-`pyproject.toml` plays a role similar to `package.json` in a JavaScript project.
-
-A lock file serves a role closer to `package-lock.json`.
-
----
-
-## `server/app/main.py`
-
-Creates the FastAPI application instance.
-
-Current implementation:
-
-```python
-from fastapi import FastAPI
-
-app = FastAPI(title="AI Ticket Assistant API")
-```
-
-This name can eventually be updated to:
-
-```python
-app = FastAPI(title="AI IT Knowledge Assistant API")
-```
-
-but avoid unrelated changes while implementing other features.
-
-Beginner note:
-
-This is similar to:
-
-```javascript
-const app = express();
-```
-
-in an Express application.
-
-FastAPI creates the application.
-
-Uvicorn runs it and listens for incoming HTTP requests.
-
----
-
-# Next Planned Step
-
-Continue building the backend foundation.
-
-Implement:
-
-```text
-GET /health
-```
-
-Expected response:
-
-```json
-{
-  "status": "ok"
-}
-```
-
-Implementation order:
-
-```text
-server/app/api/routes.py
-        ↓
-server/app/main.py
-        ↓
-server/tests/test_health.py
-```
-
-The purpose of this endpoint is to:
-
-- verify the backend is running,
-- establish the routing pattern,
-- create the first API test,
-- confirm the FastAPI/Pytest development environment works.
-
-After the backend foundation is working, begin the basic `/questions` API before implementing RAG.
-
-Do not start with LangChain, embeddings, PostgreSQL vector search, React, or AWS.
-
-Build the system incrementally.
-
----
-
-# Development Rules For This Environment
-
-Before writing code:
-
-- Read the relevant files and understand the existing architecture.
-- Search the codebase for existing implementations before writing new code.
-- Reuse existing utilities, components, and patterns whenever possible.
-- Make the smallest change necessary.
+- Build the smallest end-to-end scenario first.
+- Keep HTTP, orchestration, retrieval, model-provider, policy, and tool-adapter responsibilities separate.
+- Use typed boundaries and structured outputs.
+- Mock external services in automated tests.
 - Do not refactor unrelated code.
-- Do not change APIs, folder structure, dependencies, or database schema unless explicitly requested.
-- If a design decision is unclear, ask before implementing.
-- Explain the current implementation.
-- Identify what needs to change.
-- List every file intended for modification.
-- Wait for approval before editing.
+- Do not add infrastructure until it solves a demonstrated problem.
+- Document completed behavior accurately; do not present planned features as implemented.
+- Keep secrets and real organizational data out of Git.
 
----
-
-# Implementation Standards
-
-- Write clean, maintainable, production-quality code.
-- Prefer simple solutions over overengineered ones.
-- Follow the current architecture and coding style.
-- Keep commits focused on one feature.
-- Use explicit types for requests, responses, props, and important functions.
-- Avoid implicit `any` in TypeScript.
-- Use Pydantic models for Python API boundaries.
-- Pull repeated magic values into named constants.
-- Avoid debug comments and scratch notes.
-- Add comments only when they explain why something exists.
-- Keep secrets in environment variables.
-- Never commit API keys.
-
----
-
-# Project Structure Standards
-
-- Each component, function, class, or module should have one clear responsibility.
-- Split files when they begin mixing unrelated concerns.
-- Extract repeated logic when it genuinely becomes reusable.
-- Avoid creating abstractions before they are necessary.
-- Keep frontend state minimal and localized.
-- Keep HTTP concerns out of business logic.
-- Keep external API implementation details isolated from services.
-- Keep retrieval logic separate from LLM generation where practical.
-
----
-
-# Testing and CI Standards
-
-- Add at least one test per meaningful unit of logic.
-- Use Pytest for backend tests.
-- Use Playwright for important frontend workflows when applicable.
-- Mock external LLM calls in automated tests where appropriate.
-- Avoid tests that depend on nondeterministic LLM responses.
-- Run tests automatically through CI.
-- Add formatting, linting, or type checks when those tools become part of the project.
-
----
-
-# Documentation Standards
-
-Keep:
-
-```text
-README.md
-Project.md
-```
-
-useful as real project documentation.
-
-As the project grows, documentation may include:
-
-```text
-docs/
-  architecture.md
-  rag.md
-  api.md
-  deployment.md
-```
-
-Do not create documentation files until there is enough information to justify them.
-
-After each completed feature, document:
-
-- what was built,
-- why it was built,
-- important architectural decisions,
-- tests added,
-- possible future improvements.
-
----
-
-# Mentorship Rules
-
-This project should be developed incrementally as both a portfolio project and a learning experience.
-
-For each meaningful implementation:
-
-1. Explain what we are about to build.
-2. Explain why it belongs in the architecture.
-3. Explain important technologies or patterns involved.
-4. Identify the files that will change.
-5. Wait for approval before editing.
-6. Implement the smallest useful version.
-7. Run or describe relevant tests.
-8. Explain the completed code.
-9. Explain what the developer should understand from the implementation.
-10. Identify the logical next step.
-
-Do not simply generate large amounts of code without explanation.
-
-When introducing a new technology such as:
-
-- FastAPI,
-- Pydantic,
-- PostgreSQL,
-- embeddings,
-- vector search,
-- LangChain,
-- Docker,
-- GitHub Actions,
-- AWS,
-
-explain what problem the technology solves and why it is being introduced at that point in the project.
-
----
-
-# Guiding Principle
-
-Build the simplest working version first.
-
-The progression should generally be:
-
-```text
-FastAPI
-   ↓
-REST API
-   ↓
-OpenAI
-   ↓
-Structured AI Responses
-   ↓
-Knowledge Base
-   ↓
-Retrieval
-   ↓
-RAG
-   ↓
-PostgreSQL / Vector Search
-   ↓
-React + TypeScript
-   ↓
-Testing and Reliability
-   ↓
-Docker
-   ↓
-CI/CD
-   ↓
-AWS
-   ↓
-Optional ServiceNow Integration
-```
-
-Every new technology should solve a real problem in the application rather than being added only for resume keywords.
