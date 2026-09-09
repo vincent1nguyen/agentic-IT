@@ -4,3 +4,5 @@ __pycache__/
 *.py[cod]
 build/
 ai_it_knowledge_assistant.egg-info/
+data/knowledge.db
+data/knowledge.db-*

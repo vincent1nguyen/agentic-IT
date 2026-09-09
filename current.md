@@ -1,12 +1,12 @@
 # Current Development Session
 
-Date: September 8, 2026
+Date: September 9, 2026
 
 ## Current Goal
 
 Evolve the project from a question-answering knowledge assistant into an agentic IT support assistant that can retrieve internal context, choose an appropriate tool, and safely perform approved support actions.
 
-The immediate milestone is to design and build a synthetic internal-data foundation containing knowledge-base articles, internal documentation, and relevant ticket history. All data must be fictional, sanitized, or explicitly authorized.
+The immediate milestone is a small VPN knowledge-data foundation using user-supplied public or authorized material. Start with one VPN document; ticket history and additional scenarios are deferred. All data must be public, fictional, sanitized, or explicitly authorized.
 
 ## Current State
 
@@ -16,7 +16,23 @@ The immediate milestone is to design and build a synthetic internal-data foundat
 - The response contract is currently `{ "answer": string, "sources": [] }`.
 - Provider configuration and failures are mapped to safe HTTP errors.
 - Automated tests use test doubles and do not make paid OpenAI API requests.
-- Retrieval, a mock internal database, tool calling, action approval, and audit logging have not been implemented yet.
+- `knowledge.py` defines Pydantic `Document`, `Ticket`, and `SearchResult` models with nonblank text validation, source references, sensitivity, and synthetic-data labels.
+- `data/seed.json` contains one public UCSD VPN document and an empty tickets list. It preserves the supplied PDF's extracted article text, including platform instructions and tunnel-group rules; screenshots are not searchable text.
+- Original PDF: `mockdata/IT Services - Configure VPN Client on your Computer, Tablet, or Phone.pdf`.
+- Source: https://support.ucsd.edu/services?id=kb_article_view&sysparm_article=KB0020109. The record is marked `public` and `is_synthetic: false`; timestamps describe the local record, not UCSD publication dates.
+- `knowledge_repository.py` validates the entire document batch before storage, creates the SQLite `documents` table, and inserts or updates by ID. It rejects duplicate seed IDs and nonempty ticket data; ticket storage is not implemented.
+- Ran `.venv\Scripts\python.exe knowledge_repository.py` successfully: one document loaded into `data/knowledge.db`. The generated database and its sidecar files are excluded in `.gitignore`.
+- Repeatable updates are implemented but rerun behavior and failure paths have not been tested. No new automated tests were written or run, at the user's request to defer testing until the end of the data-foundation tasks.
+- Retrieval, API grounding, tool calling, action approval, and audit logging are not implemented. The existing API is unchanged.
+
+## Working Agreement
+
+- Choose the smallest simple implementation; use SQLite and deterministic keyword/tag search without embeddings or new frameworks.
+- Before each implementation step, explain the proposed code/files and how they support the goal, then wait for approval.
+- After implementing an approved step, pause so the user can understand it before moving forward.
+- The user supplies seed information. Do not invent additional documents or tickets without agreement; current scope is VPN only.
+- Defer writing and running tests until the end of the data-foundation implementation tasks, then test before API integration.
+- The user reviewed and understood the models, seed file, and database loader. Next discussion should begin with search.
 
 ## New Product Direction
 
@@ -50,13 +66,15 @@ Return outcome, supporting sources, and audit reference
 
 ## Phased Plan
 
-### Phase 1 - Synthetic Internal Data
+### Phase 1 - VPN Data Foundation
 
-- [ ] Define a common schema for knowledge articles, internal documents, and ticket history.
-- [ ] Create a small, clearly synthetic dataset covering two or three IT support scenarios.
-- [ ] Store structured records in SQLite for the first implementation.
+- [x] Define typed document, ticket, and search-result models.
+- [x] Prepare one user-supplied public VPN article as seed data.
+- [x] Create the SQLite document schema and load the first document.
+- [x] Implement insert-or-update seed loading by document ID (verification deferred).
 - [ ] Add deterministic repository/search functions and tests.
-- [ ] Add provenance and sensitivity metadata to every record.
+- [x] Add provenance and sensitivity metadata to the current record.
+- [ ] Add ticket fixtures and SQLite ticket storage when the user expands scope.
 
 Suggested initial entities:
 
@@ -104,33 +122,19 @@ Build one complete vertical scenario before introducing embeddings or a complex 
 
 This slice should use SQLite plus simple deterministic text/tag search. It will establish data contracts, provenance, citations, tool boundaries, and tests without prematurely coupling the project to a vector database or orchestration framework.
 
-## Files Expected in the Next Milestone
+## Current Data-Foundation Files
 
 ```text
+knowledge.py
+knowledge_repository.py
 data/
-  seed/
-    documents.json
-    tickets.json
-
-models/
-  knowledge.py
-  tools.py
-
-services/
-  knowledge_repository.py
-  retrieval.py
-
-tools/
-  registry.py
-  mock_it.py
-
-tests/
-  test_knowledge_repository.py
-  test_retrieval.py
-  test_tools.py
+  seed.json
+  knowledge.db  # generated locally; ignored by Git
+mockdata/
+  IT Services - Configure VPN Client on your Computer, Tablet, or Phone.pdf
 ```
 
-The exact structure should follow the repository as it evolves; do not create modules until the current milestone needs them.
+Keep storage and simple search together in `knowledge_repository.py` initially. Add test files at the end of the data-foundation tasks; do not create tool or orchestration modules yet.
 
 ## Guardrails
 
@@ -144,12 +148,9 @@ The exact structure should follow the repository as it evolves; do not create mo
 
 ## Next Session
 
-Implement Phase 1 as a small vertical slice:
+1. Explain and obtain approval for deterministic document retrieval in `knowledge_repository.py`: read stored documents, filter by permitted sensitivity/service, match keywords/tags, and return ranked `SearchResult` records with source references and relevant excerpts.
+2. Keep the user's example in view: "Which Secure Connect tunnel group should we use?" Search must surface the actual group-selection rules, not just the article introduction.
+3. After the data-foundation implementation is complete, write and run tests for validation, repeatable loading, filtering, ranking, citations, and empty results. Use small test fixtures for multiple-document cases; do not silently expand the seed dataset. Run relevant existing tests too, without paid model calls.
+4. Review the foundation with the user before proposing API integration. Connect retrieval to `POST /questions` only after independent repository/retrieval testing passes.
 
-1. Finalize the SQLite schema and typed models.
-2. Create synthetic VPN knowledge and ticket fixtures.
-3. Add a seed/load path that is safe to run repeatedly.
-4. Implement deterministic keyword/tag retrieval.
-5. Add tests for filtering, ranking, citations, and empty results.
-6. Connect retrieval to `POST /questions` only after the repository layer is independently tested.
-
+Today's completed scope: models, one detailed source record, and persistent SQLite document loading. Remaining core work: retrieval and testing; grounded API answers belong to the following phase.
