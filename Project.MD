@@ -361,16 +361,19 @@ Frameworks such as LangChain may be introduced if they reduce demonstrated orche
 - `tests/` contains endpoint and provider tests using test doubles.
 - `pyproject.toml` declares Python dependencies.
 - The current question response is compatible with future source retrieval but does not yet retrieve data or call tools.
+- As of September 10, 2026, the VPN-only data foundation is complete: typed models, one user-supplied public VPN article, repeatable SQLite loading, and deterministic search with filtering, ranked excerpts, and source references.
+- All 47 tests pass, including repository/retrieval tests and existing API/provider tests, without paid model calls. See `current.md` for the session handoff and working agreement.
 
 ## Immediate Next Milestone
 
-Implement a synthetic VPN support vertical slice:
+Connect the tested VPN document retrieval to grounded answers, after explaining the implementation and obtaining the user's approval:
 
-1. Define models and an SQLite schema for documents and tickets.
-2. Seed a VPN KB article, an MFA procedure, several related resolved tickets, and irrelevant controls.
-3. Implement deterministic retrieval with citations.
-4. Test relevance, filtering, ordering, and empty results.
-5. Add a read-only mock VPN-status tool only after retrieval is independently working.
+1. Retrieve permitted VPN context for `POST /questions`.
+2. Supply selected passages to the model and return supporting citations.
+3. Define explicit behavior when evidence is missing or insufficient.
+4. Test grounding and the API contract with mocked model responses.
+
+The immediate dataset remains one public VPN article. Additional seed documents, ticket storage/history, and mock tools are deferred until the user expands scope. The broader roadmap above describes future work.
 
 ## Development Principles
 
@@ -382,4 +385,3 @@ Implement a synthetic VPN support vertical slice:
 - Do not add infrastructure until it solves a demonstrated problem.
 - Document completed behavior accurately; do not present planned features as implemented.
 - Keep secrets and real organizational data out of Git.
-

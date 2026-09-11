@@ -1,6 +1,6 @@
 # Current Development Session
 
-Date: September 9, 2026
+Date: September 10, 2026
 
 ## Current Goal
 
@@ -22,8 +22,11 @@ The immediate milestone is a small VPN knowledge-data foundation using user-supp
 - Source: https://support.ucsd.edu/services?id=kb_article_view&sysparm_article=KB0020109. The record is marked `public` and `is_synthetic: false`; timestamps describe the local record, not UCSD publication dates.
 - `knowledge_repository.py` validates the entire document batch before storage, creates the SQLite `documents` table, and inserts or updates by ID. It rejects duplicate seed IDs and nonempty ticket data; ticket storage is not implemented.
 - Ran `.venv\Scripts\python.exe knowledge_repository.py` successfully: one document loaded into `data/knowledge.db`. The generated database and its sidecar files are excluded in `.gitignore`.
-- Repeatable updates are implemented but rerun behavior and failure paths have not been tested. No new automated tests were written or run, at the user's request to defer testing until the end of the data-foundation tasks.
-- Retrieval, API grounding, tool calling, action approval, and audit logging are not implemented. The existing API is unchanged.
+- Foundation testing is complete: `.venv\Scripts\python.exe -m pytest -q` passed all 47 tests (40 new foundation cases and 7 existing API/provider cases), without paid model calls. Tests use temporary databases and fictional fixtures; the seed dataset is unchanged. Coverage includes repeatable loading, updates, retained records, batch validation, transaction rollback, filtering, ranking, citations, empty results, and input validation.
+- `search_documents` in `knowledge_repository.py` now reads SQLite in read-only mode, filters by permitted sensitivity (public by default) and optional service, and ranks distinct keyword matches with title/tag/content weights of 3/2/1. Ties use document ID. Results include source references, sensitivity, synthetic labels, and an excerpt selected from overlapping 160-word passages. Blank inputs and invalid limits are rejected; no matches return an empty list.
+- The real VPN tunnel-group regression passes: the excerpt includes campus-only/all-traffic routing rules, secure-connect options, and NAC requirements, with the original source reference. API grounding, tool calling, action approval, and audit logging are not implemented. The existing API is unchanged.
+- Refactored search into `_validate_search_inputs`, `_read_documents`, and `_score_document` helpers at the user's request. SQL construction, connection handling, and row conversion stay together in `_read_documents`; `search_documents` coordinates retrieval, result construction, and sorting. Foundation tests now exercise this implementation.
+- The first test run found a test expectation comparing equivalent UTC timestamp strings (`Z` versus `+00:00`); corrected the test to compare datetime values. No production code fixes were needed. The suite emits one Starlette/httpx deprecation warning.
 
 ## Working Agreement
 
@@ -31,8 +34,8 @@ The immediate milestone is a small VPN knowledge-data foundation using user-supp
 - Before each implementation step, explain the proposed code/files and how they support the goal, then wait for approval.
 - After implementing an approved step, pause so the user can understand it before moving forward.
 - The user supplies seed information. Do not invent additional documents or tickets without agreement; current scope is VPN only.
-- Defer writing and running tests until the end of the data-foundation implementation tasks, then test before API integration.
-- The user reviewed and understood the models, seed file, and database loader. Next discussion should begin with search.
+- Testing was deferred until the end of the data-foundation implementation; that testing step is now approved and complete. Continue testing subsequent changes before API integration.
+- The user reviewed search, approved the helper refactor, and approved foundation testing. Pause to review the passing results before proposing the next implementation step.
 
 ## New Product Direction
 
@@ -71,8 +74,9 @@ Return outcome, supporting sources, and audit reference
 - [x] Define typed document, ticket, and search-result models.
 - [x] Prepare one user-supplied public VPN article as seed data.
 - [x] Create the SQLite document schema and load the first document.
-- [x] Implement insert-or-update seed loading by document ID (verification deferred).
-- [ ] Add deterministic repository/search functions and tests.
+- [x] Implement and verify insert-or-update seed loading by document ID.
+- [x] Add deterministic document search functions.
+- [x] Test repository loading and document search.
 - [x] Add provenance and sensitivity metadata to the current record.
 - [ ] Add ticket fixtures and SQLite ticket storage when the user expands scope.
 
@@ -134,7 +138,7 @@ mockdata/
   IT Services - Configure VPN Client on your Computer, Tablet, or Phone.pdf
 ```
 
-Keep storage and simple search together in `knowledge_repository.py` initially. Add test files at the end of the data-foundation tasks; do not create tool or orchestration modules yet.
+Keep storage and simple search together in `knowledge_repository.py` initially. Foundation tests are in `tests/test_knowledge.py` and `tests/test_knowledge_repository.py`, with a shared fictional fixture in `tests/conftest.py`. Do not create tool or orchestration modules yet.
 
 ## Guardrails
 
@@ -148,9 +152,16 @@ Keep storage and simple search together in `knowledge_repository.py` initially. 
 
 ## Next Session
 
-1. Explain and obtain approval for deterministic document retrieval in `knowledge_repository.py`: read stored documents, filter by permitted sensitivity/service, match keywords/tags, and return ranked `SearchResult` records with source references and relevant excerpts.
-2. Keep the user's example in view: "Which Secure Connect tunnel group should we use?" Search must surface the actual group-selection rules, not just the article introduction.
-3. After the data-foundation implementation is complete, write and run tests for validation, repeatable loading, filtering, ranking, citations, and empty results. Use small test fixtures for multiple-document cases; do not silently expand the seed dataset. Run relevant existing tests too, without paid model calls.
-4. Review the foundation with the user before proposing API integration. Connect retrieval to `POST /questions` only after independent repository/retrieval testing passes.
+1. Resume from the completed foundation: all 47 tests pass, including the user's tunnel-group example. The user has received an explanation of the testing process and instructions for manual searches; no user-run manual test results have been reported.
+2. Propose grounded API integration: retrieve public VPN context for `POST /questions`, supply selected context to the model, return citations, and define missing-evidence behavior. Explain the files and obtain approval before implementation.
+3. Keep repository/retrieval regressions passing and use mocked model calls for API integration tests. Ticket data and tools remain deferred.
 
-Today's completed scope: models, one detailed source record, and persistent SQLite document loading. Remaining core work: retrieval and testing; grounded API answers belong to the following phase.
+Today's completed scope: deterministic document search, helper refactor, and passing foundation tests. The VPN-only data foundation is complete. Grounded API answers are the next phase, pending review and approval.
+
+## End-of-Day Handoff
+
+- The user chose to stop here for today. No API integration has been started or approved.
+- The user understands that search returns in-memory `SearchResult` objects for later model use; these results are not saved to SQLite.
+- Discussed keyword search as the baseline, with vector or hybrid retrieval deferred until realistic evaluations demonstrate a benefit.
+- Manual workflow shared: run `.venv\Scripts\python.exe knowledge_repository.py`, start `.venv\Scripts\python.exe`, import `search_documents`, and inspect returned records or `results[0].excerpt`. Try relevant questions, unrelated keywords, service filters, empty permissions, and blank input.
+- Automated verification command: `.venv\Scripts\python.exe -m pytest -q`. Last result: 47 passed, one Starlette/httpx deprecation warning. No paid model calls.
