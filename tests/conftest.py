@@ -1,5 +1,17 @@
 import pytest
 
+from knowledge import SearchResult
+
+
+@pytest.fixture
+def search_result():
+    return SearchResult(
+        id="vpn-guide", record_type="document", title="VPN guide",
+        excerpt="Select the VPN profile assigned to your device.", score=3,
+        source_reference="fixture://vpn-guide", sensitivity="public",
+        is_synthetic=True,
+    )
+
 
 @pytest.fixture
 def document_record():

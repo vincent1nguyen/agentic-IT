@@ -1,5 +1,56 @@
 # Agentic IT Support Assistant - Project Plan
 
+## Latest Implementation Update — September 14, 2026
+
+The first grounded API slice is implemented: `/questions` retrieves public VPN
+excerpts, sends them to the model with grounding instructions, and returns their
+source references. No matches skip the model and return an explicit missing-evidence
+answer. Search failures return a safe 503 error. All 52 tests pass without paid model
+calls. Live-model answer quality and citation faithfulness remain unevaluated;
+returned sources identify supplied context, not independently verified claims.
+This supersedes the older API status and immediate-next-milestone sections below.
+The user has reviewed this slice. See `current.md` for the next-session handoff.
+
+## Confirmed Product Direction - September 14, 2026
+
+Build an AI-powered mock ServiceNow ticket assistant for IT support staff: investigate
+fictional tickets, retrieve supporting documentation, suggest articles, draft service-desk
+responses, and perform approved ticket actions in a local mock system.
+No real ServiceNow connection is required for this personal-project demonstration.
+
+The API and a future MCP server will expose shared application services. An MCP-compatible
+client, such as Claude Code, can use those capabilities without bypassing validation,
+permissions, approval, or audit handling. The client may provide its own agent reasoning;
+the existing API continues to support the application's model-generated answer flow.
+
+Planned MCP tools:
+
+| Tool | Purpose | Effect |
+| --- | --- | --- |
+| `search_kb` | Retrieve permitted knowledge excerpts | Read-only |
+| `get_ticket` | Retrieve a fictional ticket by ID | Read-only |
+| `suggest_kb_articles` | Find relevant articles for a ticket | Read-only |
+| `draft_ticket_response` | Generate a grounded reply for review | Returns a draft; does not post it |
+| `add_ticket_comment` | Save an approved comment to a mock ticket | State-changing; approval and audit required |
+| `update_ticket_status` | Change a mock ticket's status | State-changing; approval and audit required |
+
+### Near-Term Build Order
+
+1. Evaluate the implemented VPN answer flow with supported, incomplete, and missing
+   evidence scenarios. Mocked tests do not establish live-model answer quality.
+2. Add a consistent service-desk reply template: greeting, thank-you, grounded guidance
+   or clarification, and configured technician/contact signature. Keep source citations
+   available for technician review; do not let the model invent contact details.
+3. Add ticket subject/description input and mock ticket persistence with retrieval by ID.
+4. Implement investigation and drafting tools using shared application services.
+5. Expose those services through MCP.
+6. Add approved mock comments/status changes with validation and audit records.
+
+A small technician UI can demonstrate ticket entry, reply review, sources, and copying
+the draft once the core workflow is ready. Additional data and each implementation step
+remain subject to the working agreement in `current.md`. The broader roadmap below is
+long-term guidance; this build order takes precedence for the next sessions.
+
 ## Project Vision
 
 Build a full-stack IT support assistant that can understand a technician's request, retrieve relevant internal context, choose from a controlled set of tools, and perform authorized actions safely.

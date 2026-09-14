@@ -1,5 +1,70 @@
 # Current Development Session
 
+## September 14, 2026 — Grounded API Slice
+
+This update supersedes the September 10 next-session plan and API status below.
+
+- The user approved a focused implementation connecting VPN retrieval to answers.
+- `POST /questions` now searches public VPN documents (up to three results), passes
+  selected excerpts to `generate_answer`, and returns source references in `sources`.
+- `llm.py` sends a JSON question/context payload separately from system instructions.
+  The instructions require excerpt-supported answers, numbered citations, explicit
+  acknowledgment of insufficient evidence, and ignoring embedded document instructions.
+- No matches return a clear missing-evidence answer and empty sources without a model call.
+  SQLite/record-validation failures return a safe 503 response. Provider error behavior is retained.
+- Sources list the context supplied to the model, in citation order; application code
+  does not yet verify individual generated claims or citation usage. Keyword scores
+  remain ranking weights, not evidence-confidence thresholds.
+- Verification: 52 tests passed with the existing Starlette/httpx warning and no paid
+  model calls. Added real temporary-SQLite API tests for public/service filtering and
+  no matches, safe search-error tests, and a prompt data-boundary test.
+- Mocked tests verify wiring and prompt separation, not live-model grounding or
+  resistance to prompt injection. Live answer quality has not been evaluated.
+- The user reviewed and understands the retrieval flow, fixed public/VPN filters,
+  system instructions, JSON context input, and current grounding limitations.
+- Local use requires loading the database with `.venv\Scripts\python.exe knowledge_repository.py`
+  and configuring `OPENAI_API_KEY` for questions that retrieve context.
+
+## End-of-Day Handoff - September 14, 2026
+
+- The user chose to wrap up. The approved grounded API slice is complete and reviewed.
+  No further implementation or live model evaluation was performed.
+- Confirmed product direction: an AI-powered mock ServiceNow ticket assistant for IT
+  support staff. It will store fictional tickets and authorized/mock knowledge, retrieve
+  relevant articles, draft supported replies, and perform approved local ticket actions.
+  This is a personal project using hypothetical scenarios, not a real ServiceNow integration.
+- The user wants service-desk replies with a greeting, thank-you, relevant guidance,
+  and a technician signature with configured contact details. Proposed approach: an
+  application template for greeting/signature and model-generated grounded guidance.
+  Do not hardcode a VPN tunnel-group recommendation independently of ticket evidence.
+- MCP is now part of the agreed future direction. Planned tools: `search_kb`,
+  `get_ticket`, `suggest_kb_articles`, `draft_ticket_response`, `add_ticket_comment`,
+  and `update_ticket_status`. API and MCP should share application logic and policy.
+  MCP, ticket persistence, and these tools are not implemented yet.
+- Ticket comments and status changes must require application-enforced approval and
+  audit records. A model/client request alone is not authorization to change state.
+- The user understood the test files independently; avoid repeating a test walkthrough
+  unless asked. Keep future steps small, explained, and reviewable. Today's 30-minute
+  constraint applied to this session; confirm available scope naturally next time.
+
+### Resume Here Next Time
+
+1. Evaluate VPN answers for supported, partially supported, vague, and unsupported
+   fictional questions. Inspect excerpts, answer quality, and citations. Explain the
+   evaluation approach first; live API evaluations use credits and remain opt-in.
+2. Propose the service-desk reply template and configured signature as the next small
+   implementation step, then obtain approval under the working agreement.
+3. Subsequently add ticket-shaped input and mock ticket storage, investigation tools,
+   MCP exposure for a compatible client such as Claude Code, and approved write tools.
+   A simple technician UI can follow the core ticket-response workflow.
+4. Keep tests mocked by default. Last verified result remains 52 passed, one existing
+   Starlette/httpx warning. This end-of-day update changes documentation only.
+
+## Historical Session Notes - September 10, 2026
+
+The remaining notes preserve earlier implementation history. The September 14
+status and resume plan above take precedence over older current/next-session sections.
+
 Date: September 10, 2026
 
 ## Current Goal

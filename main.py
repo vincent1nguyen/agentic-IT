@@ -1,7 +1,10 @@
+import sqlite3
 from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, StringConstraints
+
+from knowledge_repository import search_documents
 
 from llm import LLMConfigurationError, LLMProviderError, generate_answer
 
@@ -31,7 +34,24 @@ def health() -> dict[str, str]:
 @app.post("/questions", response_model=QuestionResponse)
 def ask_question(request: QuestionRequest) -> QuestionResponse:
     try:
-        answer = generate_answer(request.question)
+        context = search_documents(
+            request.question, permitted_sensitivities=("public",), service="vpn", limit=3
+        )
+    except (sqlite3.Error, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Knowledge search is temporarily unavailable.",
+        ) from exc
+
+    if not context:
+        return QuestionResponse(
+            answer="I couldn't find supporting information in the VPN documentation. "
+            "Please provide more details about your VPN question.",
+            sources=[],
+        )
+
+    try:
+        answer = generate_answer(request.question, context)
     except LLMConfigurationError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -45,5 +65,5 @@ def ask_question(request: QuestionRequest) -> QuestionResponse:
 
     return QuestionResponse(
         answer=answer,
-        sources=[],
+        sources=[result.source_reference for result in context],
     )
