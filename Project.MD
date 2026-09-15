@@ -1,5 +1,66 @@
 # Agentic IT Support Assistant - Project Plan
 
+## Agreed Retrieval Direction — September 15, 2026
+
+Build a LangChain RAG (retrieval-augmented generation) pipeline with FastAPI and
+semantic search to retrieve relevant knowledge-base articles and surface cited
+sources alongside generated responses. This is the intended implementation and
+portfolio goal, not a capability already completed.
+
+The next milestone is article ingestion and semantic retrieval: split the existing
+VPN article into coherent passages, retain article/source and passage metadata,
+generate embeddings, and retrieve relevant passages through LangChain. Connect
+that retriever to the existing grounded FastAPI answer flow. PostgreSQL with
+pgvector is a candidate aligned with the broader stack; the vector store,
+embedding model, dependencies, and detailed file changes still need a concrete
+proposal. Preserve authorization filtering and the separation of retrieved data
+from system instructions.
+
+The September 15 retrieval-only evaluation found the correct article for all four
+user questions, but its single 160-word excerpt missed important evidence for
+tunnel-group selection, Trellix requirements, and username format. An unsupported
+package-scripts question returned unrelated Linux installation instructions.
+Use these results as the keyword baseline for evaluating semantic retrieval;
+semantic similarity does not establish that a passage answers the question.
+
+LangChain and semantic search are now explicit requirements. SQLite FTS5 was
+discussed but was not selected as the next step. This direction supersedes earlier
+instructions to defer LangChain and embeddings. No RAG migration has been
+implemented; see `current.md` for exact evaluation inputs and the current handoff.
+
+### What RAG Means in This Project
+
+RAG is the evidence pipeline used before the model answers:
+
+```text
+IT question or fictional ticket
+    -> split and index authorized support documents as meaningful chunks
+    -> retrieve the chunks most relevant to the issue
+    -> pass the question, chunks, and source metadata to the LLM
+    -> return a grounded answer, a clarification request, or an evidence-gap response
+```
+
+The current keyword baseline successfully identifies the VPN article but often
+chooses the wrong passage inside it. Semantic retrieval is intended to improve
+passage selection by meaning rather than exact word overlap. It is not a complete
+solution by itself: chunk boundaries, metadata filters, top-k results, neighboring
+context, reranking, and evidence/answerability checks must be evaluated against known
+questions.
+
+### RAG Versus Agentic Behavior
+
+The project has two layers:
+
+1. **RAG assistant:** retrieves evidence and produces a cited answer, clarification,
+   or explicit statement that the documentation is insufficient.
+2. **Agentic ticket assistant:** can also choose controlled tools, observe their
+   results, and continue a bounded workflow—for example, load a fictional ticket,
+   check mock VPN/account state, draft a comment, or propose a status change.
+
+A generated answer alone is chatbot/RAG behavior. Tool selection and multi-step
+decision-making make the later workflow agentic. The model may propose actions, but
+application code owns authorization, approval, execution, limits, and auditing.
+
 ## Latest Implementation Update — September 14, 2026
 
 The first grounded API slice is implemented: `/questions` retrieves public VPN
@@ -36,15 +97,24 @@ Planned MCP tools:
 
 ### Near-Term Build Order
 
-1. Evaluate the implemented VPN answer flow with supported, incomplete, and missing
-   evidence scenarios. Mocked tests do not establish live-model answer quality.
-2. Add a consistent service-desk reply template: greeting, thank-you, grounded guidance
+1. Create section-aware VPN chunks with stable IDs and article, heading, source,
+   service, sensitivity, and synthetic-data metadata.
+2. Propose and implement the LangChain embedding/vector retrieval layer in small
+   approved steps while preserving the original article and authorization filters.
+3. Evaluate retrieval independently using the four September 15 questions and
+   rewordings. Measure whether required evidence appears in the top results and
+   whether unsupported questions are recognized as weak or unanswered.
+4. Add hybrid retrieval, neighboring context, reranking, or answerability checks only
+   when evaluation shows they are needed. Then connect retrieval to generation and
+   evaluate answer grounding, clarification behavior, and citations separately.
+   Paid embedding/model calls require explicit opt-in; mock tests remain the default.
+5. Add a consistent service-desk reply template: greeting, thank-you, grounded guidance
    or clarification, and configured technician/contact signature. Keep source citations
    available for technician review; do not let the model invent contact details.
-3. Add ticket subject/description input and mock ticket persistence with retrieval by ID.
-4. Implement investigation and drafting tools using shared application services.
-5. Expose those services through MCP.
-6. Add approved mock comments/status changes with validation and audit records.
+6. Add ticket subject/description input and mock ticket persistence with retrieval by ID.
+7. Implement investigation and drafting tools using shared application services.
+8. Expose those services through MCP.
+9. Add approved mock comments/status changes with validation and audit records.
 
 A small technician UI can demonstrate ticket entry, reply review, sources, and copying
 the draft once the core workflow is ready. Additional data and each implementation step
@@ -79,7 +149,9 @@ The result should demonstrate practical agentic AI engineering, not unrestricted
 - Connecting to a real employer's systems or copying confidential documentation.
 - Giving the model unrestricted shell, network, database, or administrative access.
 - Automatically performing destructive or high-impact actions.
-- Adding embeddings, LangChain, PostgreSQL, or cloud infrastructure before a simpler implementation proves the contracts and workflow.
+- Adding cloud infrastructure before the core workflow is ready. LangChain and
+  semantic search are the agreed next retrieval milestone; PostgreSQL/pgvector
+  remains a storage candidate pending the implementation proposal.
 - Claiming autonomous remediation when actions are mocked or require technician approval.
 
 ## Target User Experience
@@ -153,7 +225,9 @@ Synthetic records should be labeled as synthetic and use fictional identifiers. 
 
 ### Initial Store
 
-Use SQLite for the first local implementation because it is simple, deterministic, and sufficient for learning the data and retrieval contracts. Introduce PostgreSQL and pgvector later when scale or semantic retrieval creates a concrete need.
+SQLite is the implemented baseline store. The next semantic retrieval design will
+select vector storage; PostgreSQL with pgvector is a candidate that fits the planned
+database stack. Preserve the existing source records during that transition.
 
 Suggested tables:
 
@@ -198,7 +272,7 @@ audit_events
 - created_at
 ```
 
-Document chunks and embeddings should be derived data, added only when semantic retrieval is introduced.
+Document chunks and embeddings will be derived data in the next semantic retrieval milestone.
 
 ### Starter Dataset
 
@@ -213,15 +287,20 @@ Include successful tickets, irrelevant tickets, ambiguous cases, outdated docume
 
 ## Retrieval Strategy
 
-Start with deterministic keyword, tag, service, document-type, and recency scoring. Return structured results containing a stable ID, title, excerpt, score, and source reference.
+The implemented baseline uses deterministic title/tag/content keyword scoring,
+public/service filters, and one selected excerpt per document. Retain its September
+15 evaluation results for comparison.
 
-Then evolve in measured steps:
+Next, build the agreed LangChain semantic retrieval pipeline:
 
-1. SQLite full-text search if basic matching becomes limiting.
-2. Chunking and embeddings for semantic similarity.
-3. Hybrid retrieval combining lexical and vector scores.
-4. Metadata and authorization filtering before results enter the prompt.
-5. Reranking only if evaluations show a benefit.
+1. Split authorized articles into coherent passages while preserving headings,
+   source references, stable identifiers, sensitivity, and synthetic-data labels.
+2. Generate embeddings and index passages in the selected vector store.
+3. Retrieve relevant passages by meaning, allowing multiple passages from one article.
+4. Enforce metadata and authorization filters before passages reach the model.
+5. Supply retrieved context to grounded generation and expose traceable citations.
+6. Evaluate retrieval separately from answer quality against the user's cases and
+   rewordings. Consider hybrid search or reranking only if measured gaps justify it.
 
 The assistant should state when evidence is weak or absent. It must not invent internal procedures or citations.
 
@@ -399,11 +478,14 @@ Track scenario-level measures such as retrieval relevance, citation accuracy, co
 
 ## Technology Strategy
 
-- **Now:** Python, FastAPI, Pydantic, OpenAI API, SQLite, Pytest.
-- **After the workflow is proven:** React, TypeScript, PostgreSQL, embeddings/vector search.
+- **Implemented:** Python, FastAPI, Pydantic, OpenAI API, SQLite, Pytest.
+- **Next:** LangChain, embeddings, and semantic/vector retrieval; select the embedding
+  model and vector store in the implementation proposal. PostgreSQL/pgvector is a candidate.
+- **Later:** React, TypeScript, and PostgreSQL if not selected for the retrieval milestone.
 - **After reliability is proven:** Docker, GitHub Actions, AWS, and optional sandbox integrations.
 
-Frameworks such as LangChain may be introduced if they reduce demonstrated orchestration or retrieval complexity. The core application contracts should not depend on a framework unnecessarily.
+LangChain is an explicit requirement for the RAG pipeline. Keep application policy,
+approval handling, and API contracts separate from framework-specific integrations.
 
 ## Current Repository State
 
@@ -417,12 +499,14 @@ Frameworks such as LangChain may be introduced if they reduce demonstrated orche
 
 ## Immediate Next Milestone
 
-Connect the tested VPN document retrieval to grounded answers, after explaining the implementation and obtaining the user's approval:
+Design and implement LangChain article ingestion and semantic retrieval, following
+the September 15 direction and the working agreement in `current.md`:
 
-1. Retrieve permitted VPN context for `POST /questions`.
-2. Supply selected passages to the model and return supporting citations.
-3. Define explicit behavior when evidence is missing or insufficient.
-4. Test grounding and the API contract with mocked model responses.
+1. Propose chunking, metadata, embedding model, vector store, dependencies, and files.
+2. Obtain approval for the concrete implementation step before changing code.
+3. Build and test the ingestion/retrieval layer, then integrate it with `/questions`.
+4. Compare retrieval against the four user-provided questions and rewordings.
+5. Evaluate live answers and citation support only with explicit opt-in for paid calls.
 
 The immediate dataset remains one public VPN article. Additional seed documents, ticket storage/history, and mock tools are deferred until the user expands scope. The broader roadmap above describes future work.
 

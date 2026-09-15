@@ -1,5 +1,102 @@
 # Current Development Session
 
+## September 15, 2026 — Retrieval Evaluation and LangChain Direction
+
+This update supersedes all earlier next-session plans and instructions to defer
+LangChain or embeddings. The grounded API remains implemented; semantic retrieval
+is the agreed next milestone and is not implemented yet.
+
+### Confirmed Direction
+
+- The user clarified the intended portfolio capability: "Engineered a LangChain RAG
+  pipeline with FastAPI and semantic search to retrieve relevant knowledge-base
+  articles and surface cited sources alongside generated responses."
+- Treat this as the implementation target, not a completed achievement. Build
+  coherent article chunks, embeddings, semantic retrieval through LangChain, and
+  integration with the existing grounded FastAPI response flow.
+- PostgreSQL with pgvector is a candidate aligned with the planned stack. Vector
+  storage, embedding model, dependencies, and detailed file changes are not selected.
+- SQLite FTS5 was proposed during discussion but was not chosen. Do not resume that
+  proposal or continue refining keyword search as the agreed next implementation.
+- Retain the mock ServiceNow product direction, future MCP tools, service-desk reply
+  template, and application-enforced approval/audit requirements for ticket writes.
+
+### Architecture Clarification
+
+The immediate system is a grounded IT-support RAG workflow:
+
+```text
+Question or fictional ticket
+    -> retrieve the most relevant authorized passages
+    -> give those passages and their sources to the LLM
+    -> answer, ask for missing context, or state that the evidence is insufficient
+```
+
+RAG is the retrieval-plus-generation portion of the project. It does not become
+agentic merely because an LLM writes the response. The later agentic layer begins
+when the model can choose among controlled tools, inspect tool results, and decide
+the next step—for example, retrieve a mock ticket, check fictional account status,
+draft a reply, or propose a ticket update. Application code, not the model, must
+enforce permissions, approvals, validation, iteration limits, and audit logging.
+
+The current failure is passage retrieval, not document retrieval: the only VPN
+article is found, but keyword scoring often selects the wrong 160-word window.
+The next milestone therefore focuses on retrieving the correct chunks before adding
+ticket actions or a broader agent loop.
+
+### Completed Retrieval-Only Evaluation
+
+Ran the user's exact questions through `search_documents` against the existing
+SQLite database with the API's filters: public sensitivity, VPN service, limit 3.
+The database contains one public VPN document whose content matches `data/seed.json`.
+All four queries returned that article. No model calls, paid API calls, code changes,
+or database changes were made. These observations concern retrieval, not generated
+answer quality.
+
+| Exact user question | Retrieved passage | Finding / expected evidence |
+| --- | --- | --- |
+| Which vpn tunnel group do I select? | iPhone/iPad instructions with split/allthruucsd routing choices. | Incomplete: misses the Secure Connect NAC group requirement found elsewhere in the article. A complete answer needs routing rules and applicable requirements, with clarification if user context is missing. |
+| Hi ITS Service Desk, im trying to install the VPN but running into an issue where it says I need to install (Trellix)? | Compliance rescanning, disconnect instructions, and the beginning of macOS requirements. | Misses the explicit Trellix/Qualys requirement and installation-redirection explanation. The full article provides those facts, but no detailed Trellix troubleshooting. |
+| Need help installing VPN, getting stuck on running package scripts step. | Linux RPM installation instructions. | Does not address the reported symptom. The article lacks a documented fix; an answer should acknowledge the gap and seek useful details rather than invent a solution. |
+| Do i use my entire username with @ucsd.edu or just the username by itself when signing into the VPN? | Android instructions to enter the AD username. | Misses the introduction's explanation that the AD username is usually the part before @ucsd.edu. Preserve that qualifier when answering. |
+
+The current selector chooses one 160-word window per document using keyword
+coverage/frequency. Generic vocabulary can outweigh the specific evidence needed.
+Document matches and ranking scores do not establish answerability: the unsupported
+package-scripts query still returns a result and would therefore reach the model
+instead of triggering the API's automatic no-match response.
+
+### Resume Here — Next Steps
+
+1. Define section-aware chunks for the existing VPN article. Each chunk should carry
+   a stable chunk ID, article ID/title, heading, source reference, service, sensitivity,
+   and synthetic-data label. Avoid arbitrary windows that mix unrelated platform steps.
+2. Add a LangChain embedding and vector-retrieval slice. Keep the original document
+   record intact, retrieve multiple relevant chunks when needed, and preserve the
+   existing public/service authorization filters. Select the embedding model, vector
+   store, dependencies, file changes, and cost policy before implementation.
+3. Evaluate retrieval without the LLM first. Rerun the four known VPN questions plus
+   rewordings and record whether the needed evidence appears in the top results.
+   Specifically test that the unsupported package-scripts question is treated as weak
+   or missing evidence rather than assumed answerable.
+4. If vector similarity alone still returns incomplete or misleading passages, add
+   measured improvements such as hybrid keyword/vector retrieval, neighboring-section
+   expansion, reranking, or an answerability threshold. Do not add them preemptively.
+5. Connect the improved retriever to the existing grounded API. Evaluate generated
+   answers, clarification behavior, unsupported-answer abstention, and citations
+   separately from retrieval quality. Paid provider evaluations require explicit
+   opt-in; automated tests should use mocked providers by default.
+6. After this RAG path is reliable, add the service-desk template, ticket input/storage,
+   read-only investigation tools, MCP exposure, and finally approved mock ticket writes.
+7. Last verified test result remains September 14's 52 passed with one existing
+   Starlette/httpx warning. Tests were not rerun for today's documentation update.
+   Live answer quality and citation faithfulness remain unevaluated.
+
+## Historical Handoff — September 14, 2026
+
+The following notes preserve the previous session. The September 15 direction and
+resume plan above take precedence.
+
 ## September 14, 2026 — Grounded API Slice
 
 This update supersedes the September 10 next-session plan and API status below.
@@ -95,7 +192,9 @@ The immediate milestone is a small VPN knowledge-data foundation using user-supp
 
 ## Working Agreement
 
-- Choose the smallest simple implementation; use SQLite and deterministic keyword/tag search without embeddings or new frameworks.
+- Keep implementation steps small and reviewable. SQLite keyword search is the
+  completed baseline; the September 15 agreement explicitly requires LangChain
+  and semantic retrieval next, superseding the earlier framework/embedding deferral.
 - Before each implementation step, explain the proposed code/files and how they support the goal, then wait for approval.
 - After implementing an approved step, pause so the user can understand it before moving forward.
 - The user supplies seed information. Do not invent additional documents or tickets without agreement; current scope is VPN only.
